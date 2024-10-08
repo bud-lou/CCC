@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CCC Game</title>
+	<link rel="icon" type="image/png" href="flowerLogo.png">
+    <style>
+		html {
+			background-color: #e3f7ff;
+			border: 5px double #c7e4f3;
+		}
+		#board {
+			background-color: #c7e4f3;
+			margin-left: 9px;
+			margin-bottom: 15px;
+			height: 300px;
+			width: 500px;
+			border-radius: 5px;
+		}
+		.boxes {
+			height: 48px;
+			width: 48px;
+			float: left;
+			border: .01px solid rgba(169, 200, 217, 0.25);
+		}
+		.sections {
+			height: 64px;
+			width: 160px;
+			float: left;
+			margin: 8px 0 8px 0;
+			text-align: center;
+			padding-top: 0px;
+		}      
+		#stats {
+			background-color: #c7e4f3;
+			margin-left: 9px;
+			height: 80px;
+			width: 500px;
+			border-radius: 5px;
+    }
+		#stars {
+			margin-left: 8px;
+			border-right: .01px solid rgb(169, 200, 217);
+		}
+		#remainingMoves {
+			line-height: 0.2;
+		}
+		#objective {
+			margin-right: 8px;
+			border-left: .01px solid rgb(169, 200, 217);
+			line-height: 0.2;
+		}		
+		.west {
+			position: relative;
+			animation-name: moveLeft;
+			animation-duration: 0.4s;
+			animation-fill-mode: none;
+		}
+		.north {
+			position: relative;
+			animation-name: moveUp;
+			animation-duration: 0.4s;
+			animation-fill-mode: none;
+		}
+		.east {
+			position: relative;
+			animation-name: moveRight;
+			animation-duration: 0.4s;
+			animation-fill-mode: none;
+		}
+		.south {
+			position: relative;
+			animation-name: moveDown;
+			animation-duration: 0.4s;
+			animation-fill-mode: none;
+		}
+		@keyframes moveLeft {
+			from {right: 0px;;}
+			to {right: 49px;}
+		}
+		@keyframes moveUp {
+			from {bottom: 0px;}
+			to {bottom: 49px;}
+		}
+		@keyframes moveRight {
+			from {left: 0px;}
+			to {left: 49px;}
+		}
+		@keyframes moveDown {
+			from {top: 0px;}
+			to {top: 49px;}
+		}
+		
+    </style>
+  </head>
+  <body>
+    <h1>CCC</h1>
+    <div id="board"></div>
+	
+	<div id="stats">
+		<div class="sections" id="stars">
+			<p>Stars</p>
+		</div>
+		<div class="sections" id="remainingMoves">
+			<p>Remaining Moves</p>
+			<p id="numberOfMoves" style="font-size:150%;"></p>
+		</div>
+		<div class="sections" id="objective">
+			<p>Objective</p>
+			<p id="numberOfPoints" style="font-size:150%;"></p>
+		</div>
+	</div>
+
+  <script>
+	  //World Variables
+	  let completeMatch;
+	  let clicked = [];
+	  let toBeCleared = [];
+	  let moves = 50;
+	  let points = 0;
+	  //Start-up
+	  document.getElementById("numberOfMoves").innerHTML = moves;
+	  document.getElementById("numberOfPoints").innerHTML = points + "/9000";
+	  forEachBox("startUp");
+	  horizontalRow("initialCheck");
+	  verticalRow("initialCheck");
+
+      function forEachBox(purpose) {
+        for (boxNum = 1; boxNum <= 60; boxNum++) {
+          if (purpose == "startUp") {
+            createBoxDivs();
+          } else if (purpose == "clearColor") {
+            document.getElementById(boxNum).style.background = "#c7e4f3";
+          }
+        }
+      }
+
+      function createBoxDivs() {
+		document.getElementById("board").innerHTML += "<div onclick='boxClicked(this.id)' class='boxes' id='" + boxNum + "'></div>";
+		//Puts random flower in box
+        flowerInBox(null, boxNum);
+		createClass();
+		//Clears the line after 10 boxes to counteract float
+		if (boxNum%10 == 1) {
+			document.getElementById(boxNum).style.clear = "left";
+		}
+      }
+	  
+	  function flowerInBox(direction, id, fall) {
+		const colors = ["flowerRed.png", "flowerOrange.png", "flowerYellow.png", "flowerGreen.png", "flowerBlue.png", "flowerPurple.png"];
+        let colorNum = Math.floor(Math.random()*6);
+		if (direction == null) {
+			document.getElementById(id).innerHTML = "";
+			document.getElementById(id).innerHTML += "<img src='" + colors[colorNum] + "'>";
+		} else if (direction == "updateClassName") {    //changes class name when 3 in row causes new colors in boxes
+			document.getElementById(id).innerHTML = "";
+			document.getElementById(id).innerHTML += "<img src='" + colors[colorNum] + "'>";
+			createClass();
+		} else if (direction == "moveDown") {
+			let fallingFlower = document.getElementById(id).innerHTML;
+			document.getElementById(id).innerHTML = "";
+			document.getElementById(id + fall*10).innerHTML = "";
+			document.getElementById(id + fall*10).innerHTML += fallingFlower;
+		} else if (direction == "next") {
+			let next = "<img src='" + colors[colorNum] + "'>";
+			return next;
+		} else {
+			document.getElementById(id).innerHTML = "";
+			document.getElementById(id).innerHTML += direction;
+		}
+	  }
+	  
+	  function createClass() {
+		//Creates name of class      ex: flowerGre
+		let selectedBox = document.getElementById(boxNum).innerHTML;
+		let newClass = selectedBox.substr(10,9);
+		//if class is changes - removes old class name
+		let boxName = document.getElementById(boxNum);
+		boxName.classList.remove("flowerRed");
+		boxName.classList.remove("flowerOra");
+		boxName.classList.remove("flowerYel");
+		boxName.classList.remove("flowerGre");
+		boxName.classList.remove("flowerBlu");
+		boxName.classList.remove("flowerPur");
+		//Adds this class to selected box
+		boxName.classList.add(newClass);
+	  }
+
+    function boxClicked(id) {
+        clicked.push(id);
+        forEachBox("clearColor");
+        //Highlights clicked box
+        document.getElementById(id).style.background = "rgb(169, 200, 217)";
+        document.getElementById(id).style.border = "black";
+        //Clears board if box is double clicked
+        if (clicked[clicked.length - 2] == id) {
+          forEachBox("clearColor");
+		  id = null;
+        }
+        //Says which box was clicked
+        console.log("box" + id);
+		//Allows arrow keys to be pressed
+		document.onkeydown = function(event) {
+			console.log("id: " + id);
+			if (id != null) {
+				let findThisClass = String(document.getElementById(id).classList); //gets class name
+				let thisBox = findThisClass.substr(6,9);                       //shortens class name
+				switch (event.keyCode) {
+					case 37:        //left
+						if (id%10 != 1) { //boxes on far left of board can't switch
+							let amount = -1;
+							prepping2switch(amount, id, thisBox);
+						}
+						break;
+					case 38:        //up
+						if (id-10 > 0) { //boxes on top of board can't switch
+							let amount = -10;
+							prepping2switch(amount, id, thisBox);
+						}
+						break;
+					case 39:        //right
+						if (id%10 != 0) { //boxes on far right of board can't switch
+							let amount = 1;
+							prepping2switch(amount, id, thisBox);
+						}
+						break;
+					case 40:        //down
+						if (id/10 < 5) { //boxes on bottom of board can't switch
+							let amount = 10;
+							prepping2switch(amount, id, thisBox);
+						}
+				}
+			}
+		}
+    }
+	
+	function prepping2switch(amount, id, thisBox) {
+		let switchBox = parseInt(id) + amount;
+		let mainBox = document.getElementById(id);
+		let otherBox = document.getElementById(switchBox);
+		let findOtherClass = String(otherBox.classList);   //gets class name
+		let destination = findOtherClass.substr(6,9);     //shortens class name
+		let switchingBox = otherBox.innerHTML;            //for flowerInBox function
+		let clickedBox = mainBox.innerHTML;               //for flowerInBox function
+		//Switches class names of thisBox and switchBox
+		switchingClasses(otherBox, mainBox, destination, thisBox);
+		
+		//Runs through checks to see if switching thisBox and switchBox will create 3 in a row
+		horizontalRow("switchingBoxes");
+		verticalRow("switchingBoxes");
+		
+		//If there are 3 in a row, innerHTMLs switch
+		if (completeMatch == true) {
+			transition(id, amount);//triggers animation
+			setTimeout(function() {                //switches innerHTMLs
+				flowerInBox(clickedBox, switchBox);
+				flowerInBox(switchingBox, id);
+				setTimeout(threeInRow, 500);      //clears boxes after half a second
+			}, 399)
+			//switchingInnerHTML(clickedBox, switchBox, switchingBox, id);
+		} else { //switches back class names if there isn't a match
+			switchingBack(mainBox, otherBox, destination, thisBox);
+		}
+	}
+	  
+	function switchingClasses(otherBox, mainBox, destination, thisBox) {
+		otherBox.classList.remove(destination);
+		otherBox.classList.add(thisBox);
+		mainBox.classList.remove(thisBox);
+		mainBox.classList.add(destination);
+		
+	}
+	
+	function switchingBack(mainBox, otherBox, destination, thisBox) { //switches classes back to original
+		mainBox.classList.remove(destination);
+		mainBox.classList.add(thisBox);
+		otherBox.classList.remove(thisBox);
+		otherBox.classList.add(destination);
+	}
+	
+	function transition(id, amount) {
+		forEachBox("clearColor");
+		let boxtoMove = document.getElementById(id);
+		idAndamount = Number(id) + Number(amount);
+		let box2Move = document.getElementById(idAndamount);
+		switch (amount) {
+			case -1: //left
+				boxtoMove.classList.add("west");
+				box2Move.classList.add("east");
+				break;
+			case -10: //up
+				console.log("box2Move: " + idAndamount);
+				boxtoMove.classList.add("north");
+				box2Move.classList.add("south"); 
+				break;
+			case 1: //right
+				boxtoMove.classList.add("east");
+				box2Move.classList.add("west");
+				break;
+			case 10: //down
+				console.log("box2Move: " + idAndamount);
+				boxtoMove.classList.add("south");  
+				box2Move.classList.add("north");
+		}
+	}
+	  
+	function threeInRow() {          
+		toBeCleared = [... new Set(toBeCleared)];  //removes duplicates from toBeCleared array
+		console.log("new: " + toBeCleared);
+		moves -= 1;
+		document.getElementById("numberOfMoves").innerHTML = moves;
+		for (let x of toBeCleared) {                       //clears boxes w/ matches
+			let boxId = document.getElementById(x);
+			boxId.innerHTML = "";
+			boxId.classList.remove("flowerRed");
+			boxId.classList.remove("flowerOra");
+			boxId.classList.remove("flowerYel");
+			boxId.classList.remove("flowerGre");
+			boxId.classList.remove("flowerBlu");
+			boxId.classList.remove("flowerPur");
+		}
+		clicked.pop();  //removes box from clicked array
+		addPoints();
+		fillBoxes(toBeCleared);
+		toBeCleared = [];   //clears boxes that have been cleared
+	  }
+	  
+	function addPoints() {
+		switch (toBeCleared.length) {
+			case 3:
+				points += 50;
+				break;
+			case 4:
+				points += 100;
+				break;
+			case 5:
+				points += 300;
+				break;
+			case 6:
+				points += 150;
+				break;
+			case 7:
+				points += 200;
+				break;
+			case 8:
+				points += 300;
+		}
+		document.getElementById("numberOfPoints").innerHTML = points + "/9000";
+	}
+	
+	function fillBoxes(toBeCleared) {
+		let items = toBeCleared.length;
+		for (itemNum = 0; itemNum < items; itemNum++ ) {   //goes through each # in toBeCleared
+			toBeCleared[itemNum] = toBeCleared[itemNum]%10;
+		}
+		let columns2bCleared = [... new Set(toBeCleared)];
+		console.log("columns: " + columns2bCleared);
+		runBackwards(columns2bCleared);
+	}
+      
+    function horizontalRow(reason) {
+        for (rowNum = 0; rowNum < 6; rowNum++) {  //Goes through rows 0-5
+		  let rowStart = rowNum*10 + 1;
+		  let rowEnd = rowStart + 8;
+          for (boxNum = rowStart; boxNum < rowEnd; boxNum++) {  //checks boxes 1-8 for 3 flowers in row
+			let distance = 1;
+			let selected = findSelected(reason, boxNum, distance)[0]; 
+			let oneOver = findSelected(reason, boxNum, distance)[1];
+			let twoOver = findSelected(reason, boxNum, distance)[2];
+			
+            if (selected == oneOver && selected == twoOver) {
+				if (reason == "initialCheck") {
+					flowerInBox("updateClassName", boxNum); //changes flower color
+					verticalRow("initialCheck");
+					horizontalRow("initialCheck");
+				} else if (reason == "switchingBoxes") {
+					completeMatch = true;
+					console.log("Horizontal");
+					console.log("selected: " + selected + "(H) / " + boxNum);
+					console.log("oneOver: " + oneOver + "(H)");
+					console.log("twoOver: " + twoOver + "(H)");
+					toBeCleared.push(boxNum, boxNum+1, boxNum+2);
+				}
+				//console.log("3+ on row: " + Math.floor(boxNum/10) + ", box: " + boxNum);
+            }
+          }
+        }
+	}
+	
+	function verticalRow(reason) {
+		for (columnNum = 1; columnNum <= 10; columnNum++) {     //checks boxes in rows 1-8 for every column
+			for (boxNum = columnNum; boxNum <= 40; boxNum+=10) {	
+				let distance = 10;
+				let selected = findSelected(reason, boxNum, distance)[0]; 
+				let oneOver = findSelected(reason, boxNum, distance)[1];
+				let twoOver = findSelected(reason, boxNum, distance)[2];
+				
+				if (selected == oneOver && selected == twoOver) {
+					if (reason == "initialCheck") {
+						flowerInBox("updateClassName", boxNum); //changes flower color
+						verticalRow("initialCheck");
+						horizontalRow("initialCheck");
+					}  else if (reason == "switchingBoxes") {
+						completeMatch = true;
+						console.log("Vertical");
+						console.log("selected: " + selected + "(V) / " + boxNum);
+						console.log("oneDown: " + oneOver + "(V)");
+						console.log("twoDown: " + twoOver + "(V)");
+						toBeCleared.push(boxNum, boxNum+10, boxNum+20);
+					}
+					//console.log("3+ on column: " + columnNum + ", box: " + boxNum);
+				}
+			}
+		}
+	}
+	
+	function runBackwards(columns2bCleared) {
+		let fall = 0;
+		let numOfColumns = columns2bCleared.length;
+		console.log("columns2bCleared: " + columns2bCleared);
+		//for (column = 0; column < numOfColumns; column++) {  //runs through columns w/ empty boxes
+		let column = 0;  //temporary!!!!
+			for (row = 5; row >= 0; row--) {                 //runs backwards (bottom to top) in column
+			//not if it's in column 10!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+				console.log("//////////////: " + row);
+				let startBox = row*10 + columns2bCleared[column];  //checks box in 5th (last) row
+				let insideStartBox = document.getElementById(startBox).innerHTML;
+				
+				let above = startBox-10;
+				let insideAbove;
+				if (row != 0) {
+					insideAbove = document.getElementById(above).innerHTML;
+				} else {        //generates next flower to fall if inside above doesn't exist (@ row 0)
+					next = flowerInBox("next");
+					console.log("next: " + next);
+					insideAbove = next;
+					
+					flowerInBox(next, columns2bCleared[column]);  ///moves next into top box
+					flowerInBox("moveDown", columns2bCleared[column], fall);  //moves the top box down
+					
+					set2Row = Math.floor((above + fall*10)/10)+1;
+					console.log("set2Row: " + set2Row);
+					row = set2Row;  //sets row to box above box you just filled
+					fall = 0;
+					
+					continue; //goes to set2Row
+				}
+				
+				
+				if (insideStartBox == "" && insideAbove == "") {      //checks if bottom box in column and box above are empty
+					console.log("running start and above as empty");
+					console.log("?:" + document.getElementById(columns2bCleared[column]).innerHTML);
+					
+					fall++;
+					console.log("id" + startBox + ": empty");
+					console.log("fall: " + fall);
+				} else if (document.getElementById(columns2bCleared[column]).innerHTML == "") {      //checks if top box is empty
+					
+					console.log("running top box is empty!!!!");
+					console.log("?:" + document.getElementById(columns2bCleared[column]).innerHTML);
+					
+					
+					flowerInBox(null, columns2bCleared[column]);  ///here is where the extra flower is being added
+					flowerInBox("moveDown", columns2bCleared[column], fall);  //moves the generated flower down 
+					
+					
+					set2Row = Math.floor((above + fall*10)/10);
+					console.log("set2Row: " + set2Row);
+					row = set2Row;  //sets row to box above box you just filled
+					
+					fall = 0;
+					console.log("fall: " + fall);
+					
+				} else if (insideStartBox == "" && insideAbove != "") {
+					console.log("running start as empty and above as full");
+					console.log("?:" + document.getElementById(columns2bCleared[column]).innerHTML);
+					
+					fall++;
+					flowerInBox("moveDown", above, fall);
+					
+					
+					console.log("id" + startBox + ": empty");
+					console.log("fall: " + fall);
+					
+					set2Row = Math.floor((above + fall*10)/10);
+					console.log("set2Row: " + set2Row);
+					row = set2Row;  //sets row to box above box you just filled
+					fall = 0;
+				} else {
+					console.log("running full");
+					console.log("?:" + document.getElementById(columns2bCleared[column]).innerHTML);
+					//console.log("id" + under + ": full");
+				}
+			}
+		//}
+	}
+	
+	function findSelected(reason, boxNum, distance) {
+		let first;
+		let second;
+		let third;
+		switch (reason) {
+			case "initialCheck":
+				first = document.getElementById(boxNum).innerHTML;
+				second = document.getElementById(boxNum + distance).innerHTML;
+				third = document.getElementById(boxNum + 2*distance).innerHTML;
+				break;
+			case "switchingBoxes":
+				//Finds classes of each box
+				let findClass1 = String(document.getElementById(boxNum).classList);
+				let findClass2 = String(document.getElementById(boxNum + distance).classList);
+				let findClass3 = String(document.getElementById(boxNum + 2*distance).classList);
+				//Shortens class names
+				first = findClass1.substr(6,9);
+				second = findClass2.substr(6,9);
+				third = findClass3.substr(6,9);
+		}
+		
+		return [first, second, third];
+	}
+	
+	//take each empty box from the array
+	//run a loop that goes through each row above
+		//assign a variable to the innerClass of each box
+		//assign it to the box below
+	//run a loop to find which boxes are now empty
+	//generate new flowers for these boxes
+		//run searches to make sure that the new boxes aren't making new matches
+	
+    </script>
+  </body>
+</html>
